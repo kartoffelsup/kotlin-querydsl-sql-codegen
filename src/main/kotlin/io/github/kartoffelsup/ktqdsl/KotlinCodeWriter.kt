@@ -20,7 +20,6 @@ import java.util.Stack
 
 open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   private val classes = HashSet<String>()
-
   private val packages = HashSet<String>()
   private val types = Stack<Type>()
 
@@ -29,34 +28,16 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   constructor(appendable: Writer, spaces: Int) : super(appendable, spaces)
 
   override fun getRawName(type: Type): String {
-    val simpleName = type.simpleName
-    return when (simpleName) {
-      "Integer", "int" -> "Int"
-      "Short", "short" -> "Short"
-      "String" -> "String"
-      "Float", "float" -> "Float"
-      "Double", "double" -> "Double"
-      "Byte", "byte" -> "Byte"
-      "Long", "long" -> "Long"
-      else -> type.getRawName(this.packages, this.classes)
-    }
+    val transformedType = JavaToKotlinTypeTransformer.transform(type)
+    return transformedType.getRawName(this.packages, this.classes)
   }
 
   override fun getGenericName(asArgType: Boolean, type: Type): String {
     if (type == Types.VOID) {
-      return "Unit"
+      return "kotlin.Unit"
     }
-    val simpleName = type.simpleName
-    return when (simpleName) {
-      "Integer", "int" -> "Int"
-      "Short", "short" -> "Short"
-      "String" -> "String"
-      "Float", "float" -> "Float"
-      "Double", "double" -> "Double"
-      "Byte", "byte" -> "Byte"
-      "Long", "long" -> "Long"
-      else -> type.getGenericName(asArgType, packages, classes)
-    }
+    val transformedType = JavaToKotlinTypeTransformer.transform(type)
+    return transformedType.getGenericName(asArgType, this.packages, this.classes)
   }
 
   override fun getClassConstant(className: String): String {
@@ -284,7 +265,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
 
   override fun packageDecl(packageName: String): CodeWriter {
     packages.add(packageName)
-    return line("package ", packageName).nl()
+    return line("package $packageName").nl()
   }
 
   override fun privateField(type: Type, name: String): CodeWriter {
@@ -427,9 +408,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   }
 
   private fun param(parameter: Parameter) {
-    append(parameter.name)
-    append(" : ")
-    append(getGenericName(true, parameter.type))
+    append("${parameter.name} : ${getGenericName(true, parameter.type)}")
   }
 
   private fun appendCommaSeparatedTypes(types: Array<out Type>) {
@@ -471,11 +450,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     name: String,
     nullable: Boolean
   ): KotlinCodeWriter {
-    return this.append(modifier)
-      .append(" ")
-      .append(name)
-      .append(" : ")
-      .append(getGenericName(false, type))
+    return this.append("$modifier $name : ${getGenericName(false, type)}")
       .append(if (nullable) "?" else "")
   }
 
@@ -483,15 +458,9 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     modifier: String, type: Type, name: String, value: String,
     nullable: Boolean
   ): KotlinCodeWriter {
-    return this.line(
-      modifier,
-      " ",
-      name,
-      " : ",
-      getGenericName(true, type),
+    return this.line("$modifier $name : ${getGenericName(true, type)}",
       if (nullable) "?" else "",
-      " = ",
-      value
+      " = $value"
     )
   }
 }

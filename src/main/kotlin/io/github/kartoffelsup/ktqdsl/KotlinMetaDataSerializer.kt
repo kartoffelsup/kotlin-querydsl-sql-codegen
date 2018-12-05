@@ -12,7 +12,6 @@ import com.mysema.codegen.model.ClassType
 import com.mysema.codegen.model.Parameter
 import com.mysema.codegen.model.SimpleType
 import com.mysema.codegen.model.TypeCategory
-import com.mysema.codegen.model.TypeExtends
 import com.mysema.codegen.model.Types
 import com.querydsl.codegen.EntityType
 import com.querydsl.codegen.Property
@@ -127,7 +126,6 @@ constructor(
     val additionalParams = getAdditionalConstructorParameter(model)
     val classCast = if (localName == genericName) EMPTY else "(Class) "
 
-
     // String
     constructorsForVariables(writer, model)
 
@@ -238,12 +236,10 @@ constructor(
       if (stringOrBoolean) {
         "super(path.getMetadata())"
       } else {
-        "super(" + classCast + "path.getType(), path.getMetadata()" +
-          additionalParams + ")"
+        "super(${classCast}path.getType(), path.getMetadata()$additionalParams)"
       }
     } else {
-      "this(" + classCast +
-        "path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS))"
+      "this(${classCast}path.getType(), path.getMetadata(), PathInits.getFor(path.getMetadata(), INITS))"
     }
 
     val simpleModel = SimpleType(model)

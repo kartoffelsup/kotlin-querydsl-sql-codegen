@@ -42,12 +42,14 @@ class MetaDataExportTest {
 
     metaDataExporter.export(metadata)
     val classesMethod = metaDataExporter.javaClass.declaredMethods.first { it.name == "getClasses" }
-    classesMethod.isAccessible = true
-    val classes = classesMethod.invoke(metaDataExporter)
-
+    val classes: Set<*> = classesMethod.run {
+      isAccessible = true
+      invoke(metaDataExporter) as Set<*>
+    }
+    println(classes)
     // FIXME kartoffelsup: Compile and check for errors? Compare with existing types?
-    // adding a dependency on kotlin-compiler introduces a new guava version which breaks
-    // querydsl
+    // adding a dependency on kotlin-compiler introduces an old guava version bundled in the kotlin compiler
+    // which breaks querydsl
   }
 
   @AfterTest
@@ -57,7 +59,7 @@ class MetaDataExportTest {
 
   private fun createTables(connection: Connection) {
     val statement = connection.createStatement()
-    statement.use {
+    statement.also {
       // reserved words
       it.execute("create table reserved (id int, `while` int)")
 
