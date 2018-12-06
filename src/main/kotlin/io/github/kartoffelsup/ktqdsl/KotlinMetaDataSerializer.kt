@@ -70,7 +70,7 @@ constructor(
       variableName,
       queryType.simpleName + "(\"" + alias + "\")"
     )
-    kotlinCodeWriter.end(false)
+    kotlinCodeWriter.end()
   }
 
   override fun constructorsForVariables(writer: CodeWriter, model: EntityType) {

@@ -16,12 +16,10 @@ import java.io.Writer
 import java.lang.reflect.InvocationTargetException
 import java.util.Arrays
 import java.util.HashSet
-import java.util.Stack
 
 open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   private val classes = HashSet<String>()
   private val packages = HashSet<String>()
-  private val types = Stack<Type>()
 
   constructor(appendable: Writer) : super(appendable, 2)
 
@@ -105,7 +103,6 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   fun writeDataClassWithConstructorStart(type: Type): KotlinCodeWriter {
     packages.add(type.packageName)
     beginLine("data class ", type.getGenericName(false, packages, classes), "(")
-    types.push(type)
     return this
   }
 
@@ -125,7 +122,6 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     }
     append(" {").nl().nl()
     goIn()
-    types.push(type)
     return this
   }
 
@@ -133,21 +129,18 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     parameters: Collection<T>,
     transformer: Function<T, Parameter>
   ): CodeWriter {
-    types.push(types.peek())
     beginLine("constructor(").params(parameters, transformer)
       .append(" {").nl()
     return goIn()
   }
 
   override fun beginConstructor(vararg parameters: Parameter): CodeWriter {
-    types.push(types.peek())
     beginLine("constructor").params(*parameters)
       .append(" {").nl()
     return goIn()
   }
 
   fun beginConstructor(superCall: String, vararg parameters: Parameter): CodeWriter {
-    types.push(types.peek())
     beginLine("constructor")
       .params(*parameters)
       .append(" :")
@@ -166,7 +159,6 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     }
     append(" {").nl().nl()
     goIn()
-    types.push(type)
     return this
   }
 
@@ -201,13 +193,6 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   }
 
   override fun end(): CodeWriter {
-    return this.end(true)
-  }
-
-  fun end(pop: Boolean): CodeWriter {
-    if (pop) {
-      this.types.pop()
-    }
     this.goOut()
     append('}')
       .nl()
@@ -424,7 +409,6 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     modifiers: String, returnType: Type, methodName: String,
     vararg args: Parameter?
   ): KotlinCodeWriter {
-    types.push(types.peek())
     beginLine(modifiers, "fun ", methodName).params(*args)
       .append(" : ").append(getGenericName(true, returnType))
       .append(" {")
