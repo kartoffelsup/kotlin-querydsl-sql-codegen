@@ -17,13 +17,10 @@ import java.lang.reflect.InvocationTargetException
 import java.util.Arrays
 import java.util.HashSet
 
-open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
+open class KotlinCodeWriter(appendable: Writer, spaces: Int = 2) :
+  AbstractCodeWriter<KotlinCodeWriter>(appendable, spaces) {
   private val classes = HashSet<String>()
   private val packages = HashSet<String>()
-
-  constructor(appendable: Writer) : super(appendable, 2)
-
-  constructor(appendable: Writer, spaces: Int) : super(appendable, spaces)
 
   override fun getRawName(type: Type): String {
     val transformedType = JavaToKotlinTypeTransformer.transform(type)
@@ -102,8 +99,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
 
   fun writeDataClassWithConstructorStart(type: Type): KotlinCodeWriter {
     packages.add(type.packageName)
-    beginLine("data class ", type.getGenericName(false, packages, classes), "(")
-    return this
+    return line("data class ", type.getGenericName(false, packages, classes), "(").goIn()
   }
 
   override fun beginClass(type: Type): CodeWriter {
@@ -193,10 +189,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   }
 
   override fun end(): CodeWriter {
-    this.goOut()
-    append('}')
-      .nl()
-    return this
+    return this.goOut().line("}")
   }
 
   override fun field(type: Type, name: String): CodeWriter {
@@ -210,7 +203,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   private fun imports(wildcard: Boolean, vararg imports: Class<*>): CodeWriter {
     for (cl in imports) {
       this.classes.add(cl.name)
-      this.line("import ", cl.name, if(wildcard) ".*" else "")
+      this.line("import ", cl.name, if (wildcard) ".*" else "")
     }
     this.nl()
     return this
@@ -254,55 +247,55 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   }
 
   override fun privateField(type: Type, name: String): CodeWriter {
-    return field("private var", type, name, false)
+    return field("private var", type, name, nullable = false)
   }
 
   override fun privateFinal(type: Type, name: String): CodeWriter {
-    return field("private val", type, name, false)
+    return field("private val", type, name, nullable = false)
   }
 
   override fun privateFinal(type: Type, name: String, value: String): CodeWriter {
-    return field("private val", type, name, value, false)
+    return field("private val", type, name, value, nullable = false)
   }
 
   override fun privateStaticFinal(type: Type, name: String, value: String): CodeWriter {
-    return field("private val", type, name, value, false)
+    return field("private val", type, name, value, nullable = false)
   }
 
   override fun protectedField(type: Type, name: String): CodeWriter {
-    return field("protected var", type, name, false)
+    return field("protected var", type, name, nullable = false)
   }
 
   override fun protectedFinal(type: Type, name: String): CodeWriter {
-    return field("protected val", type, name, false)
+    return field("protected val", type, name, nullable = false)
   }
 
   override fun protectedFinal(type: Type, name: String, value: String): CodeWriter {
-    return field("protected val", type, name, value, false)
+    return field("protected val", type, name, value, nullable = false)
   }
 
   override fun publicField(type: Type, name: String): CodeWriter {
-    return field("var", type, name, false)
+    return field("var", type, name, nullable = false)
   }
 
   override fun publicField(type: Type, name: String, value: String): CodeWriter {
-    return field("var", type, name, value, false)
+    return field("var", type, name, value, nullable = false)
   }
 
-  fun publicField(type: Type, name: String, nullable: Boolean): CodeWriter {
-    return field("var", type, name, nullable)
+  fun publicField(type: Type, name: String, nullable: Boolean, commaSuffix: Boolean = false): CodeWriter {
+    return field("var", type, name, nullable, commaSuffix)
   }
 
   override fun publicFinal(type: Type, name: String): CodeWriter {
-    return field("val", type, name, false)
+    return field("val", type, name, nullable = false)
   }
 
   override fun publicFinal(type: Type, name: String, value: String): CodeWriter {
-    return field("val", type, name, value, false)
+    return field("val", type, name, value, nullable = false)
   }
 
   override fun publicStaticFinal(type: Type, name: String, value: String): CodeWriter {
-    return field("val", type, name, value, false)
+    return field("val", type, name, value, nullable = false)
   }
 
   override fun staticimports(vararg classes: Class<*>): CodeWriter {
@@ -318,8 +311,7 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
   }
 
   fun beginCompanionObject() {
-    append("companion object {").nl()
-    goIn()
+    line("companion object {").goIn()
   }
 
   private fun annotationConstant(value: Any?) {
@@ -432,17 +424,20 @@ open class KotlinCodeWriter : AbstractCodeWriter<KotlinCodeWriter> {
     modifier: String,
     type: Type,
     name: String,
-    nullable: Boolean
+    nullable: Boolean,
+    commaSuffix: Boolean = false
   ): KotlinCodeWriter {
-    return this.append("$modifier $name : ${getGenericName(false, type)}")
-      .append(if (nullable) "?" else "")
+    val nullableMarker = if (nullable) "?" else ""
+    val suffix = if(commaSuffix) "," else ""
+    return line("$modifier $name : ${getGenericName(false, type)}$nullableMarker$suffix")
   }
 
   private fun field(
     modifier: String, type: Type, name: String, value: String,
     nullable: Boolean
   ): KotlinCodeWriter {
-    return this.line("$modifier $name : ${getGenericName(true, type)}",
+    return this.line(
+      "$modifier $name : ${getGenericName(true, type)}",
       if (nullable) "?" else "",
       " = $value"
     )

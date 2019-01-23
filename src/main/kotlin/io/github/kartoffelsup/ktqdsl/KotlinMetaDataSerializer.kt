@@ -2,7 +2,6 @@
 
 package io.github.kartoffelsup.ktqdsl
 
-import com.google.common.base.Preconditions
 import com.mysema.codegen.CodeWriter
 import com.mysema.codegen.Symbols.COMMA
 import com.mysema.codegen.Symbols.EMPTY
@@ -58,10 +57,12 @@ constructor(
     defaultName: String
   ) {
     val kotlinCodeWriter = checkWriter(writer)
-    val variableName = if (!defaultName.isEmpty())
+    val variableName = if (!defaultName.isEmpty()) {
       defaultName
-    else
+    } else {
       namingStrategy.getDefaultVariableName(entityType)
+    }
+
     val alias = namingStrategy.getDefaultAlias(entityType)
     val queryType = typeMappings.getPathType(entityType, entityType, true)
     kotlinCodeWriter.beginCompanionObject()
@@ -279,13 +280,12 @@ constructor(
   }
 
   private fun checkWriter(writer: CodeWriter): KotlinCodeWriter {
-    Preconditions.checkState(
-      writer is KotlinCodeWriter,
-      "A %s is required for %s",
-      KotlinCodeWriter::class.java,
-      KotlinMetaDataSerializer::class.java
-    )
-    return writer as KotlinCodeWriter
+    check(
+      writer is KotlinCodeWriter
+    ) {
+      "A ${KotlinCodeWriter::class.java} is required for ${KotlinMetaDataSerializer::class.java}"
+    }
+    return writer
   }
 
   companion object {

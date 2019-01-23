@@ -48,17 +48,14 @@ open class KotlinBeanSerializer : Serializer {
     val properties = ArrayList(model.properties)
     properties.forEachIndexed { index, property ->
       val column = property.data["COLUMN"]
-      val nullable: Boolean
-      if (column is ColumnMetadata) {
-        nullable = column.isNullable
+      val nullable = if (column is ColumnMetadata) {
+        column.isNullable
       } else {
-        nullable = true
+        true
       }
-      writer.publicField(property.type, property.escapedName, nullable)
-      if (index < properties.size - 1) {
-        writer.append(",")
-      }
-      writer.nl()
+
+      val suffixWithComma = index < properties.size - 1
+      writer.publicField(property.type, property.escapedName, nullable, suffixWithComma)
     }
     writer.append(")")
   }
